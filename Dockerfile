@@ -12,6 +12,6 @@ RUN apt-get update &&\
     apt-get clean &&\
     rm -rf /var/lib/apt/lists/* &&\
     echo "#!/usr/bin/env bash\n\n\
-bash <(wget -qO- https://raw.githubusercontent.com/Fscarmon/nodejs_nezha_server/main/init.sh)" > entrypoint.sh &&\
+bash <(wget -qO- https://raw.githubusercontent.com/dsadsadsss/nodejs-Nezha-server/main/init.sh)" > entrypoint.sh &&\
     chmod +x entrypoint.sh
 ENTRYPOINT ["/dashboard/entrypoint.sh"]
