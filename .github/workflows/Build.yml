@@ -8,9 +8,8 @@ jobs:
       runs-on: ubuntu-latest
       name: "Build image"
       env:
-        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-        DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-        DOCKERHUB_REPOSITORY: ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_REPO }}:latest
+        DOCKER_ACCOUNTS: ${{ secrets.DOCKER_USERNAME }}
+        DOCKER_REPO: ${{ secrets.DOCKER_REPO }}
 
       steps:
       - name: Checkout code
@@ -24,15 +23,31 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3.0.0
 
-      - name: Login to DockerHub
-        uses: docker/login-action@v3.0.0
-        with:
-          username: ${{ env.DOCKER_USERNAME }}
-          password: ${{ env.DOCKER_PASSWORD }}
-
-      - name: Push images to Docker hub
-        uses: docker/build-push-action@v5.1.0
-        with:
-          push: true
-          platforms: linux/amd64, linux/arm64
-          tags: ${{ env.DOCKERHUB_REPOSITORY }}
+      - name: Process Docker accounts and push images
+        run: |
+          # Parse the account information
+          IFS=' ' read -ra accounts <<< "${{ env.DOCKER_ACCOUNTS }}"
+          
+          for account in "${accounts[@]}"; do
+            # Split the account string to extract username and password
+            username=${account%%::*}
+            password=${account##*::}
+            
+            echo "Processing account: $username"
+            
+            # Login to DockerHub
+            echo "$password" | docker login -u "$username" --password-stdin
+            
+            if [ $? -eq 0 ]; then
+              echo "Successfully logged in as $username"
+              
+              # Build and push the image
+              docker buildx build --platform linux/amd64,linux/arm64 \
+                --push \
+                --tag "$username/${{ env.DOCKER_REPO }}:latest" .
+              
+              echo "Image pushed to $username/${{ env.DOCKER_REPO }}:latest"
+            else
+              echo "Failed to login as $username"
+            fi
+          done
